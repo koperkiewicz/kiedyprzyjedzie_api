@@ -1,0 +1,9 @@
+{
+  "extends": "tslint-config-airbnb-base",
+  "rules": {
+    "ter-padded-blocks": [false],
+    "ter-arrow-parens": false,
+    "no-console": false,
+    "semicolon": false
+  }
+}
