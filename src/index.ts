@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { IBusStop } from './models';
+import { IBusStop, ICarier, Country } from './models';
 
 export default class KiedyPrzyjedzie {
   url: string;
@@ -7,6 +7,11 @@ export default class KiedyPrzyjedzie {
 
   constructor(city: string) {
     this.url = `http://${city}.kiedyprzyjedzie.pl/stops`;
+  }
+
+  getCarriers(): ICarier[] {
+    const asdf: ICarier[];
+    return asdf;
   }
 
   getBusStops = (): object | null => {

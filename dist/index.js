@@ -26,7 +26,6 @@ class KiedyPrzyjedzie {
                         name: elem[2],
                         latitude: elem[3],
                         longtitude: elem[4],
-                        x: elem[5],
                     };
                     this.busStopList.push(busStop);
                 });
@@ -39,6 +38,10 @@ class KiedyPrzyjedzie {
             return null;
         };
         this.url = `http://${city}.kiedyprzyjedzie.pl/stops`;
+    }
+    getCarriers() {
+        const asdf;
+        return asdf;
     }
 }
 exports.default = KiedyPrzyjedzie;

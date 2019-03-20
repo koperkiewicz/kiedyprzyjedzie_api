@@ -4,5 +4,14 @@ export interface IBusStop {
     name: string;
     latitude: number;
     longtitude: number;
-    x: number;
+}
+export interface ICarier {
+    name: string;
+    url: string;
+    logo: string;
+    country: Country;
+}
+export declare enum Country {
+    PL = 0,
+    CZ = 1
 }
