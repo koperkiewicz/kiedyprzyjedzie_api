@@ -9,11 +9,11 @@ export interface IBusStop {
 export interface ICarier {
   name: string;
   url: string;
-  logo: string;
-  country: Country;
+  logo?: string;
+  country?: Country;
 }
 
 export enum Country {
   PL,
-  CZ,
+  CZ
 }
