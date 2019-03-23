@@ -3,6 +3,6 @@ export default class KiedyPrzyjedzie {
     url: string;
     busStopList: IBusStop[];
     constructor(city: string);
-    getCarriers(): ICarier[];
-    getBusStops: () => object;
+    getCarriers(): Promise<ICarier[]>;
+    getBusStops(): Promise<IBusStop[]>;
 }

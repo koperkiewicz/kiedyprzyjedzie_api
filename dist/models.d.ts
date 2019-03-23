@@ -7,9 +7,9 @@ export interface IBusStop {
 }
 export interface ICarier {
     name: string;
-    url: string;
+    url?: string;
     logo?: string;
-    country?: Country;
+    country: Country;
 }
 export declare enum Country {
     PL = 0,

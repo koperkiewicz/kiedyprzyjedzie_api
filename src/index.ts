@@ -10,62 +10,79 @@ export default class KiedyPrzyjedzie {
     this.url = `http://${city}.kiedyprzyjedzie.pl/stops`;
   }
 
-  getCarriers(): ICarier[] {
+  async getCarriers(): Promise<ICarier[]> {
     const carriersUrl: string = 'http://kiedyprzyjedzie.pl/gdzie-dziala';
     let carriers: ICarier[] = [];
 
-    axios
-      .get(carriersUrl)
-      .then(response => {
-        let data = response.data;
-        const $ = cheerio.load(data);
-        $('.carriers-item').each((i, elem) => {
-          const name = elem.childNodes[1].childNodes[1].attribs.src;
-          const logo = elem.childNodes[1].childNodes[3].children[0].data; // trzeba obsluzyc brak logo
-          const url = elem.childNodes[3].children[1].children[1].attribs.href;
-          console.log(name, logo, url);
-        });
-      })
-      .catch(error => {
-        console.error(error);
+    try {
+      let response = await axios.get(carriersUrl);
+      const $ = cheerio.load(response.data);
+
+      $('.carriers-item').each((i, elem) => {
+        const name = $(elem).find('.center > .area')[0].children[0].data;
+
+        const url = $(elem).find('.js-expand > .service > a').length
+          ? $(elem).find('.js-expand > .service > a')[0].attribs.href
+          : null;
+
+        const logo = $(elem).find('.center > img').length
+          ? 'http://kiedyprzyjedzie.pl' +
+            $(elem).find('.center > img')[0].attribs.src
+          : null;
+
+        let country = url ? url.match(/\.(pl|cz)/)[1].toUpperCase() : null;
+
+        const carrier: ICarier = {
+          name,
+          url,
+          logo,
+          country: Country[country]
+        };
+
+        carriers.push(carrier);
       });
+    } catch (error) {
+      console.error(error);
+    }
+
+    // console.log(1, carriers);
 
     return carriers;
   }
 
-  getBusStops = (): object | null => {
-    axios
-      .get(this.url, {
-        proxy: {
-          host: 'frankfurt.proxy.kelvion.local',
-          port: 8080
-        }
-      })
-      .then(response => {
-        const data = response.data;
-        let results = data.match(/\[(.)*\]/g);
-        results = JSON.parse(results);
-        results.map(elem => {
-          const busStop: IBusStop = {
-            id: elem[0],
-            number: elem[1],
-            name: elem[2],
-            latitude: elem[3],
-            longtitude: elem[4]
-          };
-          this.busStopList.push(busStop);
-        });
-        // console.log(results);
-        return results;
-      })
-      .catch(error => {
-        console.log(error);
-      });
+  // proxy: {
+  //   host: 'frankfurt.proxy.kelvion.local',
+  //   port: 8080
+  // }
 
-    return null;
-  };
+  async getBusStops(): Promise<IBusStop[]> {
+    let BusStops: IBusStop[] = [];
+    const response = await axios.get(this.url);
+
+    const data = response.data;
+    let results = data.match(/\[(.)*\]/g);
+    results = JSON.parse(results);
+    results.map(elem => {
+      const busStop: IBusStop = {
+        id: elem[0],
+        number: elem[1],
+        name: elem[2],
+        latitude: elem[3],
+        longtitude: elem[4]
+      };
+      this.busStopList.push(busStop);
+    });
+
+    return BusStops;
+  }
 }
 
 const kp = new KiedyPrzyjedzie('Opole');
-kp.getCarriers();
+let dupa = kp.getCarriers().then(res => {
+  // console.log(res);
+});
+
+console.log(kp.getBusStops());
+
+let a = 1;
 // console.log(kp.busStopList);
