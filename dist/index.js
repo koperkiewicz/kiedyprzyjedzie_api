@@ -39,72 +39,27 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = __importDefault(require("axios"));
-var cheerio_1 = __importDefault(require("cheerio"));
-var models_1 = require("./models");
+var Carriers_1 = __importDefault(require("./Carriers"));
 var KiedyPrzyjedzie = /** @class */ (function () {
-    function KiedyPrzyjedzie(city) {
-        this.busStopList = [];
-        this.url = "http://" + city + ".kiedyprzyjedzie.pl/stops";
+    function KiedyPrzyjedzie(carrier) {
+        this.currentCarrier = carrier;
     }
-    KiedyPrzyjedzie.prototype.getCarriers = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            var carriersUrl, carriers, response, $_1, error_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        carriersUrl = 'http://kiedyprzyjedzie.pl/gdzie-dziala';
-                        carriers = [];
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, axios_1.default.get(carriersUrl)];
-                    case 2:
-                        response = _a.sent();
-                        $_1 = cheerio_1.default.load(response.data);
-                        $_1('.carriers-item').each(function (i, elem) {
-                            var name = $_1(elem).find('.center > .area')[0].children[0].data;
-                            var url = $_1(elem).find('.js-expand > .service > a').length
-                                ? $_1(elem).find('.js-expand > .service > a')[0].attribs.href
-                                : null;
-                            var logo = $_1(elem).find('.center > img').length
-                                ? 'http://kiedyprzyjedzie.pl' +
-                                    $_1(elem).find('.center > img')[0].attribs.src
-                                : null;
-                            var country = url ? url.match(/\.(pl|cz)/)[1].toUpperCase() : null;
-                            var carrier = {
-                                name: name,
-                                url: url,
-                                logo: logo,
-                                country: models_1.Country[country]
-                            };
-                            carriers.push(carrier);
-                        });
-                        return [3 /*break*/, 4];
-                    case 3:
-                        error_1 = _a.sent();
-                        console.error(error_1);
-                        return [3 /*break*/, 4];
-                    case 4: 
-                    // console.log(1, carriers);
-                    return [2 /*return*/, carriers];
-                }
-            });
-        });
-    };
     // proxy: {
     //   host: 'frankfurt.proxy.kelvion.local',
     //   port: 8080
     // }
     KiedyPrzyjedzie.prototype.getBusStops = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var BusStops, response, data, results;
-            var _this = this;
+            var BusStops, response, data, results, error_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         BusStops = [];
-                        return [4 /*yield*/, axios_1.default.get(this.url)];
+                        _a.label = 1;
                     case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, axios_1.default.get(this.currentCarrier.url + "/stops")];
+                    case 2:
                         response = _a.sent();
                         data = response.data;
                         results = data.match(/\[(.)*\]/g);
@@ -114,12 +69,59 @@ var KiedyPrzyjedzie = /** @class */ (function () {
                                 id: elem[0],
                                 number: elem[1],
                                 name: elem[2],
-                                latitude: elem[3],
-                                longtitude: elem[4]
+                                latitude: elem[4],
+                                longitude: elem[3],
+                                location: {
+                                    latitude: elem[4],
+                                    longitude: elem[3]
+                                }
                             };
-                            _this.busStopList.push(busStop);
+                            BusStops.push(busStop);
                         });
-                        return [2 /*return*/, BusStops];
+                        return [3 /*break*/, 4];
+                    case 3:
+                        error_1 = _a.sent();
+                        console.error(error_1);
+                        return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/, BusStops];
+                }
+            });
+        });
+    };
+    KiedyPrzyjedzie.prototype.getBusStopSchedule = function (busStop) {
+        return __awaiter(this, void 0, void 0, function () {
+            var BusSchedule, url, response, data_1, error_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        BusSchedule = [];
+                        url = this.currentCarrier.url + "/api/departures/" + busStop.number;
+                        console.log(url);
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, axios_1.default.get(url)];
+                    case 2:
+                        response = _a.sent();
+                        data_1 = response.data;
+                        data_1.rows.map(function (row) {
+                            var busSchedule = {
+                                atStop: row.at_stop,
+                                directionId: row.direction_id,
+                                directionName: data_1.directions[row.direction_id],
+                                isEstimated: row.is_estimated,
+                                lineNumber: row.line_name,
+                                time: row.time,
+                                vehicleType: row.vehicle_type
+                            };
+                            BusSchedule.push(busSchedule);
+                        });
+                        return [3 /*break*/, 4];
+                    case 3:
+                        error_2 = _a.sent();
+                        console.error(error_2);
+                        return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/, BusSchedule];
                 }
             });
         });
@@ -127,11 +129,19 @@ var KiedyPrzyjedzie = /** @class */ (function () {
     return KiedyPrzyjedzie;
 }());
 exports.default = KiedyPrzyjedzie;
-var kp = new KiedyPrzyjedzie('Opole');
-var dupa = kp.getCarriers().then(function (res) {
-    // console.log(res);
+Carriers_1.default.getCarriers().then(function (carriers) {
+    var carrier = carriers.find(function (carrier) {
+        return carrier.name === 'MZK Sp. z o.o. Opole';
+    });
+    console.log(carrier);
+    var kp = new KiedyPrzyjedzie(carrier);
+    kp.getBusStops().then(function (busStops) {
+        var busStop = busStops.find(function (busStop) {
+            return busStop.number === 260;
+        });
+        kp.getBusStopSchedule(busStop).then(function (schedule) {
+            console.log(schedule);
+        });
+    });
 });
-console.log(kp.getBusStops());
-var a = 1;
-// console.log(kp.busStopList);
 //# sourceMappingURL=index.js.map

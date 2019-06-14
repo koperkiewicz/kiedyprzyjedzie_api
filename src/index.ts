@@ -1,88 +1,91 @@
 import axios from 'axios';
 import cheerio from 'cheerio';
-import { IBusStop, ICarier, Country } from './models';
+import Carriers from './Carriers';
+import { IBusStop, IBusSchedule, ICarier } from './models';
 
 export default class KiedyPrzyjedzie {
-  url: string;
-  busStopList: IBusStop[] = [];
+  currentCarrier: ICarier;
 
-  constructor(city: string) {
-    this.url = `http://${city}.kiedyprzyjedzie.pl/stops`;
+  constructor(carrier: ICarier) {
+    this.currentCarrier = carrier;
   }
 
-  async getCarriers(): Promise<ICarier[]> {
-    const carriersUrl: string = 'http://kiedyprzyjedzie.pl/gdzie-dziala';
-    let carriers: ICarier[] = [];
+  async getBusStops(): Promise<IBusStop[]> {
+    let BusStops: IBusStop[] = [];
 
     try {
-      let response = await axios.get(carriersUrl);
-      const $ = cheerio.load(response.data);
+      const response = await axios.get(`${this.currentCarrier.url}/stops`);
 
-      $('.carriers-item').each((i, elem) => {
-        const name = $(elem).find('.center > .area')[0].children[0].data;
-
-        const url = $(elem).find('.js-expand > .service > a').length
-          ? $(elem).find('.js-expand > .service > a')[0].attribs.href
-          : null;
-
-        const logo = $(elem).find('.center > img').length
-          ? 'http://kiedyprzyjedzie.pl' +
-            $(elem).find('.center > img')[0].attribs.src
-          : null;
-
-        let country = url ? url.match(/\.(pl|cz)/)[1].toUpperCase() : null;
-
-        const carrier: ICarier = {
-          name,
-          url,
-          logo,
-          country: Country[country]
+      const data = response.data;
+      let results = data.match(/\[(.)*\]/g);
+      results = JSON.parse(results);
+      results.map(elem => {
+        const busStop: IBusStop = {
+          id: elem[0],
+          number: elem[1],
+          name: elem[2],
+          latitude: elem[4],
+          longitude: elem[3],
+          location: {
+            latitude: elem[4],
+            longitude: elem[3]
+          }
         };
-
-        carriers.push(carrier);
+        BusStops.push(busStop);
       });
     } catch (error) {
       console.error(error);
     }
 
-    // console.log(1, carriers);
-
-    return carriers;
+    return BusStops;
   }
 
-  // proxy: {
-  //   host: 'frankfurt.proxy.kelvion.local',
-  //   port: 8080
-  // }
+  async getBusStopSchedule(busStop: IBusStop): Promise<IBusSchedule[]> {
+    let BusSchedule: IBusSchedule[] = [];
+    const url: string = `${this.currentCarrier.url}/api/departures/${
+      busStop.number
+    }`;
+    console.log(url);
 
-  async getBusStops(): Promise<IBusStop[]> {
-    let BusStops: IBusStop[] = [];
-    const response = await axios.get(this.url);
+    try {
+      const response = await axios.get(url);
+      const data = response.data;
 
-    const data = response.data;
-    let results = data.match(/\[(.)*\]/g);
-    results = JSON.parse(results);
-    results.map(elem => {
-      const busStop: IBusStop = {
-        id: elem[0],
-        number: elem[1],
-        name: elem[2],
-        latitude: elem[3],
-        longtitude: elem[4]
-      };
-      this.busStopList.push(busStop);
-    });
+      data.rows.map(row => {
+        const busSchedule: IBusSchedule = {
+          atStop: row.at_stop,
+          directionId: row.direction_id,
+          directionName: data.directions[row.direction_id],
+          isEstimated: row.is_estimated,
+          lineNumber: row.line_name,
+          time: row.time,
+          vehicleType: row.vehicle_type
+        };
 
-    return BusStops;
+        BusSchedule.push(busSchedule);
+      });
+    } catch (error) {
+      console.error(error);
+    }
+    return BusSchedule;
   }
 }
 
-const kp = new KiedyPrzyjedzie('Opole');
-let dupa = kp.getCarriers().then(res => {
-  // console.log(res);
+Carriers.getCarriers().then(carriers => {
+  let carrier = carriers.find(carrier => {
+    return carrier.name === 'MZK Sp. z o.o. Opole';
+  });
+  console.log(carrier);
+
+  const kp = new KiedyPrzyjedzie(carrier);
+
+  kp.getBusStops().then(busStops => {
+    let busStop = busStops.find(busStop => {
+      return busStop.number === 260;
+    });
+
+    kp.getBusStopSchedule(busStop).then(schedule => {
+      console.log(schedule);
+    });
+  });
 });
-
-console.log(kp.getBusStops());
-
-let a = 1;
-// console.log(kp.busStopList);

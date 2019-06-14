@@ -1,8 +1,7 @@
-import { IBusStop, ICarier } from './models';
+import { IBusStop, IBusSchedule, ICarier } from './models';
 export default class KiedyPrzyjedzie {
-    url: string;
-    busStopList: IBusStop[];
-    constructor(city: string);
-    getCarriers(): Promise<ICarier[]>;
+    currentCarrier: ICarier;
+    constructor(carrier: ICarier);
     getBusStops(): Promise<IBusStop[]>;
+    getBusStopSchedule(busStop: IBusStop): Promise<IBusSchedule[]>;
 }
